@@ -49,18 +49,25 @@ class Controller {
     onMove({clientX, clientY}) {
         if (!this.active) return;
 
-        const _x = clientX - this.settings.left;
-        const _y = clientY - this.settings.top;
+        const x = clientX - this.settings.left;
+        const y = clientY - this.settings.top;
 
+        this.circle.x = x;
+        this.circle.y = y;
+    }
+
+
+    update() {
         const {
+            rectangle, circle,
             rectangle: {x: rx, y: ry, angle},
-            circle: {radius},
-            circle, rectangle,
+            circle: {x: cx, y: cy},
             collisionData: {closestX, closestY}
         } = this;
 
-        const x = closestX;
-        const y = closestY;
+        const collide = collideCircleWithRotatedRectangle(circle, rectangle, this.collisionData)
+        circle.item.style.background = collide ? "#e0ad11" : "#55e55e";
+
 
         const _vector = {
             x: closestX - rx,
@@ -68,26 +75,32 @@ class Controller {
         }
 
         const vector = {
-            x: Math.cos(angle) * _vector.x - Math.sin(angle) * _vector.y,
-            y: Math.sin(angle) * _vector.x + Math.cos(angle) * _vector.y,
+            x: Math.cos(angle) * _vector.x - Math.sin(angle) * _vector.y + rx,
+            y: Math.sin(angle) * _vector.x + Math.cos(angle) * _vector.y + ry,
         }
 
-        this.prejector.x = x;
-        this.prejector.y = y;
-
-        this.circle.x = _x;
-        this.circle.y = _y;
-
-        this.rotated.x = rx + vector.x;
-        this.rotated.y = ry + vector.y;
-    }
+        this.prejector.x = vector.x;
+        this.prejector.y = vector.y;
 
 
-    update() {
-        const {rectangle, circle, settings: {width, height}} = this;
+        const delta = {
+            x: (cx - rx) - (vector.x - rx),
+            y: (cy - ry) - (vector.y - ry),
+        }
 
-        const collide = collideCircleWithRotatedRectangle(circle, rectangle, this.collisionData)
-        circle.item.style.background = collide ? "#e0ad11" : "#55e55e";
+        //todo: минимальный вектор, нужно найти вектор направления меча относительно середины и применять минимальный по направлению
+        const minVector = {
+            x: rectangle.width / 2,
+            y: rectangle.height / 2,
+        }
+
+        if (delta.x === 0)
+            this.circle.x = vector.x;
+        if (delta.y === 0)
+            this.circle.y = vector.y;
+
+
+        console.log(delta);
 
         requestAnimationFrame(this.update)
     }
