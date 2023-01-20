@@ -28,7 +28,7 @@ class Controller {
 
         this.rectangle.x = offsetWidth / 2;
         this.rectangle.y = offsetHeight / 2;
-        this.rectangle.angle = .5;
+        this.rectangle.angle = .9;
 
 
         requestAnimationFrame(this.update);
@@ -68,11 +68,10 @@ class Controller {
         const collide = collideCircleWithRotatedRectangle(circle, rectangle, this.collisionData)
         circle.item.style.background = collide ? "#e0ad11" : "#55e55e";
 
-
         const _vector = {
             x: closestX - rx,
             y: closestY - ry,
-        }
+        };
 
         const vector = {
             x: Math.cos(angle) * _vector.x - Math.sin(angle) * _vector.y + rx,
@@ -82,27 +81,7 @@ class Controller {
         this.prejector.x = vector.x;
         this.prejector.y = vector.y;
 
-
-        const delta = {
-            x: (cx - rx) - (vector.x - rx),
-            y: (cy - ry) - (vector.y - ry),
-        }
-
-        //todo: минимальный вектор, нужно найти вектор направления меча относительно середины и применять минимальный по направлению
-        const minVector = {
-            x: rectangle.width / 2,
-            y: rectangle.height / 2,
-        }
-
-        if (delta.x === 0)
-            this.circle.x = vector.x;
-        if (delta.y === 0)
-            this.circle.y = vector.y;
-
-
-        console.log(delta);
-
-        requestAnimationFrame(this.update)
+        requestAnimationFrame(this.update);
     }
 
 
@@ -113,49 +92,51 @@ export const controller = new Controller();
 
 function collideCircleWithRotatedRectangle(circle, rect, data) {
     const {angle} = rect;
-    const circleX = circle.x;
-    const circleY = circle.y;
 
-    const rectMidPointX = rect.x;
-    const rectMidPointY = rect.y;
-
-    const rectX = rectMidPointX - rect.width / 2;
-    const rectY = rectMidPointY - rect.height / 2;
-
-    const rectWidth = rect.width;
-    const rectHeight = rect.height;
+    const rectX = rect.x - rect.width / 2;
+    const rectY = rect.y - rect.height / 2;
 
     // Rotate circle's center point back
-    const unrotatedCircleX = Math.cos(-angle) * (circleX - rectMidPointX) -
-        Math.sin(-angle) * (circleY - rectMidPointY) + rectMidPointX;
-    const unrotatedCircleY = Math.sin(-angle) * (circleX - rectMidPointX) +
-        Math.cos(-angle) * (circleY - rectMidPointY) + rectMidPointY;
+    const unrotatedCircleX = Math.cos(-angle) * (circle.x - rect.x) -
+        Math.sin(-angle) * (circle.y - rect.y) + rect.x;
+    const unrotatedCircleY = Math.sin(-angle) * (circle.x - rect.x) +
+        Math.cos(-angle) * (circle.y - rect.y) + rect.y;
 
     // Closest point in the rectangle to the center of circle rotated backwards(unrotated)
     let closestX, closestY;
 
     if (unrotatedCircleX < rectX)
         closestX = rectX;
-    else if (unrotatedCircleX > rectX + rectWidth)
-        closestX = rectX + rectWidth;
+    else if (unrotatedCircleX > rectX + rect.width)
+        closestX = rectX + rect.width;
     else
         closestX = unrotatedCircleX;
+
 
     // Find the unrotated closest y point from center of unrotated circle
     if (unrotatedCircleY < rectY)
         closestY = rectY;
-    else if (unrotatedCircleY > rectY + rectHeight)
-        closestY = rectY + rectHeight;
-    else
-        closestY = unrotatedCircleY;
+    else if (unrotatedCircleY > rectY + rect.height)
+        closestY = rectY + rect.height;
+    else closestY = unrotatedCircleY;
 
     const distance = getDistance(unrotatedCircleX, unrotatedCircleY, closestX, closestY);
 
+    const dy0 = Math.abs(unrotatedCircleY - rectY);
+    const dy1 = Math.abs(unrotatedCircleY - (rectY + rect.height));
+    const dx0 = Math.abs(unrotatedCircleX - rectX);
+    const dx1 = Math.abs(unrotatedCircleX - (rectX + rect.width));
+
+    const dx = dx0 < dx1 ? rectX : rectX + rect.width;
+    const dy = dy0 < dy1 ? rectY : rectY + rect.height;
+    const isHorizontal = Math.abs(closestX - dx) < Math.abs(closestY - dy);
+
+    data.closestX = isHorizontal ? dx : closestX;
+    data.closestY = !isHorizontal ? dy : closestY;
 
     data.unrotatedCircleX = unrotatedCircleX;
     data.unrotatedCircleY = unrotatedCircleY;
-    data.closestX = closestX;
-    data.closestY = closestY;
+
 
     return distance < circle.radius
 }
